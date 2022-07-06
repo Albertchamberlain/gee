@@ -1,4 +1,4 @@
-# Gmos
+# gee
 web framework in go
 使用Go语言写一个迷你Web框架
 gee框架的设计以及API均参考了gin。
