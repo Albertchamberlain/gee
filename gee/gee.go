@@ -1,7 +1,6 @@
 package gee
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -10,42 +9,35 @@ import (
 //当用户调用(*Engine).GET()方法时,会将路由和处理方法注册到映射表 router 中,(*Engine).Run()方法,是 ListenAndServe 的包装。
 //ServeHTTP 方法,解析请求的路径,查找路由映射表,如果查到,就执行注册的处理方法。如果查不到,就返回 404 NOT FOUND 。
 
-type HandleFunc func(http.ResponseWriter, *http.Request)
+type HandlerFunc func(*Context)
 
 type Engine struct {
-	router map[string]HandleFunc
+	router *router
 }
 
-//constructor
 func New() *Engine {
-	return &Engine{router: make(map[string]HandleFunc)}
+	return &Engine{router: newRouter()}
 }
 
-func (engine *Engine) addRoute(method string, pattern string, handler HandleFunc) {
-	key := method + "-" + pattern
-	engine.router[key] = handler
+func (engine *Engine) addRoute(method string, pattern string, handler HandlerFunc) {
+	engine.router.addRouter(method, pattern, handler)
 }
 
-//GET
-func (engine *Engine) GET(patttern string, handler HandleFunc) {
-	engine.addRoute("GET", patttern, handler)
+// GET
+func (engine *Engine) GET(pattern string, handler HandlerFunc) {
+	engine.addRoute("GET", pattern, handler)
 }
 
-//POST
-func (engine *Engine) POST(patttern string, handler HandleFunc) {
-	engine.addRoute("POST", patttern, handler)
+// POST
+func (engine *Engine) POST(pattern string, handler HandlerFunc) {
+	engine.addRoute("POST", pattern, handler)
 }
 
-//Run
 func (engine *Engine) Run(addr string) (err error) {
 	return http.ListenAndServe(addr, engine)
 }
 
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	key := req.Method + "-" + req.URL.Path
-	if handler, ok := engine.router[key]; ok {
-		handler(w, req)
-	} else {
-		fmt.Printf("404 NOT FOUND: %s\n", req.URL)
-	}
+	c := newContext(w, req)
+	engine.router.handle(c)
 }

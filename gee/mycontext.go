@@ -2,7 +2,7 @@
 // 和当前请求强相关的信息都应由 Context 承载。因此，设计 Context 结构，
 // 扩展性和复杂性留在了内部，而对外简化了接口。路由的处理函数，以及将要实现的中间件，
 // 参数都统一使用 Context 实例， Context 就像一次会话的百宝箱，可以找到任何东西。
-package main
+package gee
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-type H map[string]interface{} //这个H在gin中也是一样的功能
+type H map[string]interface{} //这个H在gin中也是一样的功能,起个别名
 
 type Context struct {
 	Writer     http.ResponseWriter
