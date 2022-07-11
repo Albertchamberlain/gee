@@ -12,12 +12,20 @@ import (
 
 type H map[string]interface{} //这个H在gin中也是一样的功能,起个别名
 
+// 通过在Context对象中增加一个属性和方法，来实现对路由参数的访问
+
 type Context struct {
 	Writer     http.ResponseWriter
 	Req        *http.Request
 	Path       string
 	Method     string
 	StatusCode int
+	Params     map[string]string
+}
+
+func (c *Context) Param(key string) string {
+	value, _ := c.Params[key]
+	return value
 }
 
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
