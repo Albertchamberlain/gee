@@ -1,6 +1,7 @@
 package gee
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -11,26 +12,54 @@ import (
 
 type HandlerFunc func(*Context)
 
+type RouterGroup struct {
+	prefix      string
+	middlewares []HandlerFunc // 支持中间件
+	parent      *RouterGroup  // 支持嵌套
+	engine      *Engine       // 所有组共享一个engine实例
+}
+
 type Engine struct {
+	*RouterGroup
 	router *router
+	groups []*RouterGroup // 存储所有的分组
 }
 
 func New() *Engine {
-	return &Engine{router: newRouter()}
+	engine := &Engine{router: newRouter()}
+	engine.RouterGroup = &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{engine.RouterGroup}
+	return engine
 }
 
-func (engine *Engine) addRoute(method string, pattern string, handler HandlerFunc) {
-	engine.router.addRouter(method, pattern, handler)
+func (group *RouterGroup) Group(prefix string) *RouterGroup {
+	engine := group.engine
+	newGroup := &RouterGroup{
+		prefix: group.prefix + prefix,
+		parent: group,
+		engine: engine,
+	}
+	engine.groups = append(engine.groups, newGroup)
+	return newGroup
+}
+
+//addRoute函数，调用了group.engine.router.addRoute来实现了路由的映射
+//由于Engine从某种意义上继承了RouterGroup的所有属性和方法，因为 (*Engine).engine 是指向自己的。
+//这样实现，我们既可以像原来一样添加路由，也可以通过分组添加路由。
+func (group *RouterGroup) addRouter(method string, comp string, handler HandlerFunc) {
+	pattern := group.prefix + comp
+	log.Printf("Route %4s - %s", method, pattern)
+	group.engine.router.addRouter(method, pattern, handler)
 }
 
 // GET
-func (engine *Engine) GET(pattern string, handler HandlerFunc) {
-	engine.addRoute("GET", pattern, handler)
+func (group *RouterGroup) GET(pattern string, handler HandlerFunc) {
+	group.addRouter("GET", pattern, handler)
 }
 
 // POST
-func (engine *Engine) POST(pattern string, handler HandlerFunc) {
-	engine.addRoute("POST", pattern, handler)
+func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
+	group.addRouter("POST", pattern, handler)
 }
 
 func (engine *Engine) Run(addr string) (err error) {
