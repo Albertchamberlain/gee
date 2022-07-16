@@ -3,6 +3,7 @@ package gee
 import (
 	"log"
 	"net/http"
+	"strings"
 )
 
 //首先定义了类型HandlerFunc,这是提供给框架用户的,用来定义路由映射的处理方法
@@ -30,6 +31,10 @@ func New() *Engine {
 	engine.RouterGroup = &RouterGroup{engine: engine}
 	engine.groups = []*RouterGroup{engine.RouterGroup}
 	return engine
+}
+
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...) // 添加中间件
 }
 
 func (group *RouterGroup) Group(prefix string) *RouterGroup {
@@ -66,7 +71,20 @@ func (engine *Engine) Run(addr string) (err error) {
 	return http.ListenAndServe(addr, engine)
 }
 
+// 当我们接收到一个具体请求时，
+// 要判断该请求适用于哪些中间件，在这里我们简单通过 URL 的前缀来判断。
+// 得到中间件列表后，赋值给 c.handlers。
+// handle 函数中，将从路由匹配得到的 Handler 添加到 c.handlers列表中，执行c.Next()。
+
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	c := newContext(w, req)
+	engine.router.handle(c)
+	c.handlers = middlewares
 	engine.router.handle(c)
 }
