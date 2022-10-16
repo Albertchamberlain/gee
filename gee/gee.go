@@ -17,7 +17,7 @@ type RouterGroup struct {
 	prefix      string
 	middlewares []HandlerFunc // 支持中间件
 	parent      *RouterGroup  // 支持嵌套
-	engine      *Engine       // 所有组共享一个engine实例
+	engine      *Engine       // 所有路由组共享一个engine实例
 }
 
 type Engine struct {
@@ -48,9 +48,9 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	return newGroup
 }
 
-//addRoute函数，调用了group.engine.router.addRoute来实现了路由的映射
-//由于Engine从某种意义上继承了RouterGroup的所有属性和方法，因为 (*Engine).engine 是指向自己的。
-//这样实现，我们既可以像原来一样添加路由，也可以通过分组添加路由。
+// addRoute函数，调用了group.engine.router.addRoute来实现了路由的映射
+// 由于Engine从某种意义上继承了RouterGroup的所有属性和方法，因为 (*Engine).engine 是指向自己的。
+// 这样实现，我们既可以像原来一样添加路由，也可以通过分组添加路由。
 func (group *RouterGroup) addRouter(method string, comp string, handler HandlerFunc) {
 	pattern := group.prefix + comp
 	log.Printf("Route %4s - %s", method, pattern)
